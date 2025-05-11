@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'myapp:latest'
+        IMAGE_NAME = "my-python-app"
     }
 
     stages {
@@ -14,35 +14,36 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                sh 'pip install -r requirements.txt'
             }
         }
 
-        stage('Test') {
+        stage('Run Tests') {
             steps {
-                sh 'npm test'
+                sh 'pytest tests/'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE .'
+                sh "docker build -t $IMAGE_NAME ."
             }
         }
 
-        stage('Deploy') {
+        stage('Archive Docker Image') {
             steps {
-                echo 'Deploy step goes here (optional for local setup)'
+                sh "docker save $IMAGE_NAME > ${IMAGE_NAME}.tar"
+                archiveArtifacts artifacts: "${IMAGE_NAME}.tar", fingerprint: true
             }
         }
     }
 
     post {
         success {
-            echo 'Build completed successfully.'
+            echo '✅ Pipeline succeeded.'
         }
         failure {
-            echo 'Build failed.'
+            echo '❌ Pipeline failed.'
         }
     }
 }
