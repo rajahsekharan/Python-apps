@@ -2,45 +2,65 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "my-python-app"
+        // Set the Python virtual environment path
+        VENV_PATH = '.venv'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                script {
+                    // Checkout the code from Git
+                    checkout scm
+                }
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                sh 'pip install -r requirements.txt'
+                script {
+                    // Create a virtual environment if it doesn't exist
+                    sh '''
+                    if [ ! -d "$VENV_PATH" ]; then
+                        python3 -m venv $VENV_PATH
+                    fi
+                    source $VENV_PATH/bin/activate && pip install -r requirements.txt
+                    '''
+                }
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'pytest tests/'
+                script {
+                    // Run tests (assuming you have a test suite defined)
+                    sh 'source $VENV_PATH/bin/activate && pytest'
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t $IMAGE_NAME ."
+                script {
+                    // Build Docker image (if applicable)
+                    sh 'docker build -t my-python-app .'
+                }
             }
         }
 
         stage('Archive Docker Image') {
             steps {
-                sh "docker save $IMAGE_NAME > ${IMAGE_NAME}.tar"
-                archiveArtifacts artifacts: "${IMAGE_NAME}.tar", fingerprint: true
+                script {
+                    // Archive Docker image (if applicable)
+                    sh 'docker save my-python-app -o my-python-app.tar'
+                }
             }
         }
     }
 
     post {
-        success {
-            echo '✅ Pipeline succeeded.'
+        always {
+            echo 'Pipeline finished.'
         }
         failure {
             echo '❌ Pipeline failed.'
